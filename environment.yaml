@@ -9,7 +9,7 @@ dependencies:
   - numpy=1.18.5
   - matplotlib=3.2.2
   - pillow=7.1.2
-  - python=3.7
+  - python=3.7.12
   - scipy=1.4.1
   - ipdb=0.13.0
   - ninja=1.10.2
