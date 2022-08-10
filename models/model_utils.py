@@ -131,7 +131,7 @@ class TrajectorySampler(nn.Module):
             new_bin_indices.append(trajectory_bin[permutation_indices])
         self.bin_indices = new_bin_indices
 
-    def get_occupancy(self, generator, local_latents, trajectories):
+    def get_occupancy(self, generator, local_latents, ref_latents, trajectories):
         B = local_latents.shape[0]
         query_points = trajectories.unsqueeze(0).expand(B, -1, -1, -1)
         query_points = query_points.to(local_latents.device)
@@ -146,7 +146,7 @@ class TrajectorySampler(nn.Module):
         # get occupancies for all trajectories
         with torch.no_grad():
             # z is tensor for shape [B, z_dim]
-            occupancy = generator(local_latents=local_latents, xyz=query_points)
+            occupancy = generator(local_latents=local_latents, ref_latents=ref_latents, xyz=query_points)
 
         # bin mode doesn't work great with softplus, so use ReLU anyway in that case
         if (self.alpha_activation == 'relu') or (self.mode == 'bin'):
@@ -159,7 +159,7 @@ class TrajectorySampler(nn.Module):
         occupancy = torch.sum(occupancy, dim=2)  # [B, n_trajectories]
         return occupancy
 
-    def sample_trajectories(self, generator, local_latents):
+    def sample_trajectories(self, generator, local_latents, ref_latents):
         """Return trajectories that best traverse a given scene.
 
         Input:
@@ -194,7 +194,7 @@ class TrajectorySampler(nn.Module):
             trajectories = self.real_trajectories
 
         if self.mode == 'sample':
-            occupancy = self.get_occupancy(generator=generator, local_latents=local_latents, trajectories=trajectories)
+            occupancy = self.get_occupancy(generator=generator, local_latents=local_latents, ref_latents=ref_latents, trajectories=trajectories)
 
             # randomly choose 1k trajectories to sample from
             n_subsamples = min(real_Rts.shape[0], 1000)

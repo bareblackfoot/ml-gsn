@@ -537,13 +537,50 @@ class SceneGenerator(nn.Module):
 
         return sampled_local_latents, local_latents
 
-    def query_network(self, xyz, local_latents, viewdirs):
+    def sample_ref_latent(self, ref_latents, xyz):
+        if ref_latents.ndim == 4:
+            B, local_z_dim, H, W = ref_latents.shape
+            # take only x and z coordinates, since our latent codes are in a 2D grid (no y dimension)
+            # for the purposes of grid_sample we treat H*W as the H dimension and samples_per_ray as the W dimension
+            xyz = xyz[:, :, :, [0, 2]]  # [B, H * W, samples_per_ray, 2]
+        elif ref_latents.ndim == 5:
+            B, local_z_dim, D, H, W = ref_latents.shape
+
+            B, HW, samples_per_ray, _ = xyz.shape
+            H = int(np.sqrt(HW))
+            xyz = xyz.view(B, H, H, samples_per_ray, 3)
+
+        samples_per_ray = xyz.shape[2]
+
+        # all samples get the most detailed latent codes
+        sampled_ref_latents = nn.functional.grid_sample(
+            input=ref_latents,
+            grid=xyz,
+            mode='bilinear',  # bilinear mode will use trilinear interpolation if input is 5D
+            align_corners=False,
+            padding_mode="zeros",
+        )
+        # output is shape [B, local_z_dim, H * W, samples_per_ray]
+
+        if ref_latents.ndim == 4:
+            # put channel dimension at end: [B, H * W, samples_per_ray, local_z_dim]
+            sampled_ref_latents = sampled_ref_latents.permute(0, 2, 3, 1)
+        elif ref_latents.ndim == 5:
+            sampled_ref_latents = sampled_ref_latents.permute(0, 2, 3, 4, 1)
+
+        # merge everything else into batch dim: [B * H * W * samples_per_ray, local_z_dim]
+        sampled_ref_latents = sampled_ref_latents.reshape(-1, local_z_dim)
+
+        return sampled_ref_latents, ref_latents
+
+    def query_network(self, xyz, local_latents, ref_latents, viewdirs):
         if self.coordinate_scale is not None:
             # this tries to get all input coordinates to lie within [-1, 1]
             xyz = xyz / (self.coordinate_scale / 2)
 
         B, n_samples, samples_per_ray, _ = xyz.shape  # n_samples = H * W
         sampled_local_latents, local_latents = self.sample_local_latents(local_latents, xyz=xyz)
+        sampled_ref_latents, ref_latents = self.sample_local_latents(ref_latents, xyz=xyz)
 
         if self.local_coordinates:
             # map global coordinate space into local coordinate space (i.e. each grid cell has a [-1, 1] range)
@@ -583,7 +620,7 @@ class SceneGenerator(nn.Module):
             z_samples = z_samples.view(B, n_rays, -1)
         return z_samples
 
-    def forward(self, local_latents, render_params=None, xyz=None):
+    def forward(self, local_latents, ref_latents, render_params=None, xyz=None):
         assert (xyz is not None) ^ (render_params is not None), 'Use either xyz or render_params, not both.'
         return_alpha_only = True if xyz is not None else False
 
@@ -612,7 +649,7 @@ class SceneGenerator(nn.Module):
             viewdirs = None
 
         # coarse prediction
-        rgb_coarse, alpha_coarse = self.query_network(xyz, local_latents, viewdirs)
+        rgb_coarse, alpha_coarse = self.query_network(xyz, local_latents, ref_latents, viewdirs)
 
         if return_alpha_only:
             return alpha_coarse

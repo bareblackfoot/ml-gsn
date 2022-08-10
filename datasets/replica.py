@@ -141,8 +141,11 @@ class ReplicaDataset(Dataset):
         Rt = torch.stack(Rt)
 
         Rt = Rt.unsqueeze(0)  # add batch dimension
-        Rt = normalize_trajectory(Rt, center=self.center, normalize_rotation=self.normalize_rotation)
+        Rt, ref_frame = normalize_trajectory(Rt, center=self.center, normalize_rotation=self.normalize_rotation)
         Rt = Rt[0]  # remove batch dimension
+
+        ref_rgb = rgb[ref_frame].unsqueeze(0)
+        ref_depth = depth[ref_frame].unsqueeze(0)
 
         if self.single_sample_per_trajectory:
             selected_indices = torch.multinomial(torch.ones(Rt.shape[0]), num_samples=1).squeeze()
@@ -150,6 +153,7 @@ class ReplicaDataset(Dataset):
             depth = depth[selected_indices].unsqueeze(0)
             K = K[selected_indices].unsqueeze(0)
             Rt = Rt[selected_indices].unsqueeze(0)
+
 
         if self.rot_aug:
             Rt = random_rotation_augment(Rt)
@@ -170,8 +174,8 @@ class ReplicaDataset(Dataset):
         depth = depth * 1000  # recommended scaling from game engine units to real world units
 
         if self.depth:
-            sample = {'rgb': rgb, 'depth': depth, 'K': K, 'Rt': Rt, 'scene_idx': idx}
+            sample = {'rgb': rgb, 'depth': depth, 'K': K, 'Rt': Rt, 'scene_idx': idx, 'ref_rgb':ref_rgb, 'ref_depth':ref_depth}
         else:
-            sample = {'rgb': rgb, 'K': K, 'Rt': Rt, 'scene_idx': idx}
+            sample = {'rgb': rgb, 'K': K, 'Rt': Rt, 'scene_idx': idx, 'ref_rgb':ref_rgb}
 
         return sample

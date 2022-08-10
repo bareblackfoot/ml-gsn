@@ -19,7 +19,7 @@ def normalize_trajectory(Rt, center='first', normalize_rotation=True):
         origin_frame = seq_len // 2
     else:
         # return unmodified Rt
-        return Rt
+        return Rt, None
 
     if normalize_rotation:
         origins = Rt[:, origin_frame : origin_frame + 1].expand_as(Rt).reshape(-1, 4, 4).inverse()
@@ -31,7 +31,7 @@ def normalize_trajectory(Rt, center='first', normalize_rotation=True):
         camera_pose[:, :, :3, 3] = camera_pose[:, :, :3, 3] - origins
         normalized_Rt = camera_pose.inverse()
 
-    return normalized_Rt
+    return normalized_Rt, origin_frame
 
 
 def random_rotation_augment(trajectory_Rt):

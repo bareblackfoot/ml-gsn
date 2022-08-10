@@ -76,9 +76,10 @@ class GSN(pl.LightningModule):
 
         # map 1D latent code z to 2D latent code w
         w = decoder(z=z)
+        r = ref_encoder()
 
         if 'Rt' not in camera_params.keys():
-            Rt = self.trajectory_sampler.sample_trajectories(self.generator, w)
+            Rt = self.trajectory_sampler.sample_trajectories(self.generator, w, r)
             camera_params['Rt'] = Rt
 
         # duplicate latent codes along the trajectory dimension
@@ -150,11 +151,12 @@ class GSN(pl.LightningModule):
 
         y_rgb = rearrange(x['rgb'].clone(), 'b t c h w -> (b t) c h w')
         y_depth = rearrange(x['depth'].clone(), 'b t c h w -> (b t) c h w')
-
+        ref_rgb = rearrange(x['ref_rgb'].clone(), 'b c h w -> (b) c h w')
+        ref_depth = rearrange(x['ref_depth'].clone(), 'b c h w -> (b) c h w')
         if hasattr(self, 'trajectory_sampler'):
             del x['Rt']  # delete the given trajectory so we can sample another, otherwise reuse this one
 
-        y_hat_rgb, y_hat_depth, _, _ = self.generate(z, camera_params=x)
+        y_hat_rgb, y_hat_depth, _, _ = self.generate(z, ref_rgb=ref_rgb, ref_depth=ref_depth, camera_params=x)
         y_hat_depth = y_hat_depth / self.coordinate_scale  # scale depth so that it is roughly in [0, 1]
         y_depth = y_depth / self.coordinate_scale
 
