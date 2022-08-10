@@ -37,6 +37,9 @@ model_config:
         ch_max: 256
         skip_conn: False
 
+    ref_encoder_config:
+      target: models.encoder.resnet18
+
     generator_config:
       target: models.generator.SceneGenerator
       params:

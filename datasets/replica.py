@@ -71,7 +71,7 @@ class ReplicaDataset(Dataset):
         Rt = Rt.view(-1, self.seq_len, self.step, 4, 4).permute(0, 2, 1, 3, 4).reshape(-1, self.seq_len, 4, 4)
 
         if self.center is not None:
-            Rt = normalize_trajectory(Rt, center=self.center, normalize_rotation=self.normalize_rotation)
+            Rt, ref_frame = normalize_trajectory(Rt, center=self.center, normalize_rotation=self.normalize_rotation)
 
         if self.single_sample_per_trajectory:
             # randomly select a single point along each trajectory

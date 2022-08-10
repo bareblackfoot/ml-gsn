@@ -591,6 +591,7 @@ class SceneGenerator(nn.Module):
 
         xyz = xyz.reshape(-1, 3)
         viewdirs = viewdirs.reshape(-1, 3) if viewdirs is not None else None
+        sampled_local_latents = torch.cat([sampled_local_latents, sampled_ref_latents], dim=1)
 
         rgb, alpha = self.local_generator(z=sampled_local_latents, coords=xyz, viewdirs=viewdirs)
 

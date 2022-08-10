@@ -17,6 +17,7 @@ class GSN(pl.LightningModule):
         self,
         loss_config,
         decoder_config,
+        ref_encoder_config,
         generator_config,
         texture_net_config,
         img_res=64,
@@ -42,7 +43,7 @@ class GSN(pl.LightningModule):
         generator_config.params.img_res = img_res
         generator_config.params.global_feat_res = voxel_res
         generator_config.params.coordinate_scale = self.coordinate_scale
-        generator_config.params.nerf_mlp_config.params.z_dim = decoder_config.params.out_ch
+        generator_config.params.nerf_mlp_config.params.z_dim = decoder_config.params.out_ch + 512
         self.generator_config = generator_config
 
         texture_net_config.params.in_res = generator_config.params.nerf_out_res
@@ -52,18 +53,20 @@ class GSN(pl.LightningModule):
         loss_config.params.discriminator_config.params.in_res = img_res
 
         self.decoder = instantiate_from_config(decoder_config)
+        self.ref_encoder = instantiate_from_config(ref_encoder_config)
         self.generator = instantiate_from_config(generator_config)
         self.texture_net = instantiate_from_config(texture_net_config)
         self.loss = instantiate_from_config(loss_config)
 
         self.decoder_ema = copy.deepcopy(self.decoder)
+        self.ref_encoder_ema = copy.deepcopy(self.ref_encoder)
         self.generator_ema = copy.deepcopy(self.generator)
         self.texture_net_ema = copy.deepcopy(self.texture_net)
 
     def set_trajectory_sampler(self, trajectory_sampler):
         self.trajectory_sampler = trajectory_sampler
 
-    def generate(self, z, camera_params):
+    def generate(self, z, ref_rgb, ref_depth, camera_params):
         # camera_params should be a dict with Rt and K (if Rt is not present it will be sampled)
 
         nerf_out_res = self.generator_config.params.nerf_out_res
@@ -71,12 +74,13 @@ class GSN(pl.LightningModule):
 
         # use EMA weights if in eval mode
         decoder = self.decoder if self.training else self.decoder_ema
+        ref_encoder = self.ref_encoder if self.training else self.ref_encoder_ema
         generator = self.generator if self.training else self.generator_ema
         texture_net = self.texture_net if self.training else self.texture_net_ema
 
         # map 1D latent code z to 2D latent code w
         w = decoder(z=z)
-        r = ref_encoder()
+        r = ref_encoder(torch.cat([ref_rgb, ref_depth], dim=1))
 
         if 'Rt' not in camera_params.keys():
             Rt = self.trajectory_sampler.sample_trajectories(self.generator, w, r)
@@ -110,7 +114,7 @@ class GSN(pl.LightningModule):
                 mask=indices,
             )
 
-            y_hat = generator(local_latents=w, render_params=render_params)
+            y_hat = generator(local_latents=w, ref_latents=r, render_params=render_params)
             rgb.append(y_hat['rgb'])  # shape [BT, HW, C]
             depth.append(y_hat['depth'])
 
@@ -151,8 +155,8 @@ class GSN(pl.LightningModule):
 
         y_rgb = rearrange(x['rgb'].clone(), 'b t c h w -> (b t) c h w')
         y_depth = rearrange(x['depth'].clone(), 'b t c h w -> (b t) c h w')
-        ref_rgb = rearrange(x['ref_rgb'].clone(), 'b c h w -> (b) c h w')
-        ref_depth = rearrange(x['ref_depth'].clone(), 'b c h w -> (b) c h w')
+        ref_rgb = rearrange(x['ref_rgb'].clone(), 'b t c h w -> (b t) c h w')
+        ref_depth = rearrange(x['ref_depth'].clone(), 'b t c h w -> (b t) c h w')
         if hasattr(self, 'trajectory_sampler'):
             del x['Rt']  # delete the given trajectory so we can sample another, otherwise reuse this one
 
