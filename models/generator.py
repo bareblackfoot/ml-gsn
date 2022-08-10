@@ -535,7 +535,7 @@ class SceneGenerator(nn.Module):
         # merge everything else into batch dim: [B * H * W * samples_per_ray, local_z_dim]
         sampled_local_latents = sampled_local_latents.reshape(-1, local_z_dim)
 
-        return sampled_local_latents, local_latents.shape[2]
+        return sampled_local_latents, local_latents
 
     def sample_ref_latent(self, ref_latents, xyz):
         if ref_latents.ndim == 4:
