@@ -2,7 +2,7 @@ data_config:
   dataset: 'replica_all'
   data_dir: 'data/replica_all'
   num_workers: 4
-  batch_size: 16
+  batch_size: 8
   img_res: 64
   seq_len: 4
   step: 10
