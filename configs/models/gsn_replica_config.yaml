@@ -38,7 +38,9 @@ model_config:
         skip_conn: False
 
     ref_encoder_config:
-      target: models.encoder.resnet18
+      target: models.encoder.SpatialEncoder
+      params:
+        backbone: 'resnet18'
 
     generator_config:
       target: models.generator.SceneGenerator

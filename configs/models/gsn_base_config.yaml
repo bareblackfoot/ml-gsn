@@ -39,6 +39,8 @@ model_config:
 
     ref_encoder_config:
       target: models.encoder.SpatialEncoder
+      params:
+        backbone: 'resnet18'
 
     generator_config:
       target: models.generator.SceneGenerator
