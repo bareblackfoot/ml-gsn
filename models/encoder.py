@@ -150,7 +150,7 @@ class ResNet(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(4, self.inplanes, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -368,9 +368,10 @@ class SpatialEncoder(nn.Module):
 
     def __init__(
         self,
-        backbone="resnet34",
-        pretrained=False,
+        backbone="resnet18",
+        pretrained=True,
         num_layers=4,
+        latent_size=128,
         index_interp="bilinear",
         index_padding="border",
         upsample_interp="bilinear",
@@ -406,7 +407,7 @@ class SpatialEncoder(nn.Module):
         if self.use_custom_resnet:
             print("WARNING: Custom encoder is experimental only")
             print("Using simple convolutional encoder")
-            self.model = ConvEncoder(4, norm_layer=norm_layer)
+            self.model = ConvEncoder(3, norm_layer=norm_layer)
             self.latent_size = self.model.dims[-1]
         else:
             print("Using torchvision", backbone, "encoder")
@@ -416,7 +417,8 @@ class SpatialEncoder(nn.Module):
             # Following 2 lines need to be uncommented for older configs
             self.model.fc = nn.Sequential()
             self.model.avgpool = nn.Sequential()
-            self.latent_size = [0, 64, 128, 256, 512, 1024][num_layers]
+            # self.latent_size = [0, 64, 128, 256, 512, 1024][num_layers]
+            self.latent_size = latent_size
 
         self.num_layers = num_layers
         self.index_interp = index_interp

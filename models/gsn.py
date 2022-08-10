@@ -43,7 +43,7 @@ class GSN(pl.LightningModule):
         generator_config.params.img_res = img_res
         generator_config.params.global_feat_res = voxel_res
         generator_config.params.coordinate_scale = self.coordinate_scale
-        generator_config.params.nerf_mlp_config.params.z_dim = decoder_config.params.out_ch + 512
+        generator_config.params.nerf_mlp_config.params.z_dim = decoder_config.params.out_ch + ref_encoder_config.params.latent_size
         self.generator_config = generator_config
 
         texture_net_config.params.in_res = generator_config.params.nerf_out_res
@@ -80,7 +80,8 @@ class GSN(pl.LightningModule):
 
         # map 1D latent code z to 2D latent code w
         w = decoder(z=z)
-        r = ref_encoder(torch.cat([ref_rgb, ref_depth], dim=1))
+        # r = ref_encoder(torch.cat([ref_rgb, ref_depth], dim=1))
+        r = ref_encoder(ref_rgb)
 
         if 'Rt' not in camera_params.keys():
             Rt = self.trajectory_sampler.sample_trajectories(self.generator, w, r)

@@ -2,7 +2,7 @@ data_config:
   dataset: 'replica_all'
   data_dir: '/disk2/nuri/replica_all'
   num_workers: 4
-  batch_size: 16
+  batch_size: 8
   img_res: 64
   seq_len: 4
   step: 10
@@ -41,6 +41,9 @@ model_config:
       target: models.encoder.SpatialEncoder
       params:
         backbone: 'resnet18'
+        pretrained: True
+        num_layers: 2
+        latent_size: 128
 
     generator_config:
       target: models.generator.SceneGenerator
