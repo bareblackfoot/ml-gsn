@@ -90,7 +90,7 @@ class GSNLoss(nn.Module):
             logits_fake, _ = self.discriminator(disc_in_fake)
             g_loss = self.disc_loss(logits_fake, None, mode='g')
 
-            log = {"loss_train/g_loss": g_loss.detach()}
+            log = {"lt/g": g_loss.detach()}
 
             return g_loss, log
 
@@ -115,12 +115,12 @@ class GSNLoss(nn.Module):
             d_loss = disc_loss + disc_recon_loss + grad_penalty
 
             log = {
-                "loss_train/disc_loss": disc_loss.detach(),
-                "loss_train/disc_recon_loss": disc_recon_loss.detach(),
-                "loss_train/r1_loss": grad_penalty.detach(),
-                "loss_train/d_loss": d_loss.detach(),
-                "loss_train/logits_real": logits_real.mean().detach(),
-                "loss_train/logits_fake": logits_fake.mean().detach(),
+                "lt/disc": disc_loss.detach(),
+                "lt/disc_recon": disc_recon_loss.detach(),
+                "lt/r1": grad_penalty.detach(),
+                "lt/d": d_loss.detach(),
+                "lt/logits_real": logits_real.mean().detach(),
+                "lt/logits_fake": logits_fake.mean().detach(),
             }
 
             return d_loss, log

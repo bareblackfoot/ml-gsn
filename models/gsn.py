@@ -142,8 +142,8 @@ class GSN(pl.LightningModule):
         ema_accumulate(self.generator_ema, self.generator, decay)
         ema_accumulate(self.texture_net_ema, self.texture_net, decay)
 
-    def forward(self, z, camera_params):
-        rgb, depth, Rt, K = self.generate(z, camera_params)
+    def forward(self, z, ref_rgb, ref_depth, camera_params):
+        rgb, depth, Rt, K = self.generate(z, ref_rgb, ref_depth, camera_params)
         return rgb, depth, Rt, K
 
     def training_step(self, x, batch_idx, optimizer_idx):
@@ -177,13 +177,15 @@ class GSN(pl.LightningModule):
     def validation_step(self, x, batch_idx):
         # redraw latent codes until each rank has a unique one (otherwise each rank samples the exact same codes)
         rank = dist.get_rank()
+        ref_rgb = rearrange(x['ref_rgb'].clone(), 'b t c h w -> (b t) c h w')
+        ref_depth = rearrange(x['ref_depth'].clone(), 'b t c h w -> (b t) c h w')
         for i in range(rank + 1):
             z = torch.randn(x['K'].shape[0], self.z_dim, device=x['K'].device)
 
         if hasattr(self, 'trajectory_sampler'):
             del x['Rt']  # delete the given trajectory so we can sample another, otherwise reuse this one
 
-        rgb_fake, _, _, _ = self(z, x)
+        rgb_fake, _, _, _ = self(z, ref_rgb, ref_depth, x)
         rgb_fake = rearrange(rgb_fake, 'b t c h w -> (b t) c h w')
         rgb_real = rearrange(x['rgb'].clone(), 'b t c h w -> (b t) c h w')
 

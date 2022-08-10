@@ -535,7 +535,7 @@ class SceneGenerator(nn.Module):
         # merge everything else into batch dim: [B * H * W * samples_per_ray, local_z_dim]
         sampled_local_latents = sampled_local_latents.reshape(-1, local_z_dim)
 
-        return sampled_local_latents, local_latents
+        return sampled_local_latents, local_latents.shape[2]
 
     def sample_ref_latent(self, ref_latents, xyz):
         if ref_latents.ndim == 4:
@@ -557,8 +557,8 @@ class SceneGenerator(nn.Module):
             input=ref_latents,
             grid=xyz,
             mode='bilinear',  # bilinear mode will use trilinear interpolation if input is 5D
-            align_corners=False,
-            padding_mode="zeros",
+            align_corners=True,
+            padding_mode="border",
         )
         # output is shape [B, local_z_dim, H * W, samples_per_ray]
 
@@ -580,7 +580,7 @@ class SceneGenerator(nn.Module):
 
         B, n_samples, samples_per_ray, _ = xyz.shape  # n_samples = H * W
         sampled_local_latents, local_latents = self.sample_local_latents(local_latents, xyz=xyz)
-        sampled_ref_latents, ref_latents = self.sample_local_latents(ref_latents, xyz=xyz)
+        sampled_ref_latents, ref_latents = self.sample_ref_latent(ref_latents, xyz=xyz)
 
         if self.local_coordinates:
             # map global coordinate space into local coordinate space (i.e. each grid cell has a [-1, 1] range)

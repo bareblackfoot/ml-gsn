@@ -13,7 +13,7 @@ class BaseConfig:
         parser.add_argument('--log_dir', default='logs', type=str)
         parser.add_argument('--resume_from_path', default='', type=str)
         parser.add_argument('--base_config', type=str, default='configs/models/gsn_base_config.yaml')
-        parser.add_argument('--eval_freq', type=int, default=10)
+        parser.add_argument('--eval_freq', type=int, default=1)
         parser.add_argument('--seed', type=int, default=42)
         parser.add_argument('--n_epochs', type=int, default=500)
         parser.add_argument('--precision', type=int, default=32, choices=[32, 16])
