@@ -167,7 +167,7 @@ class ReplicaDataset(Dataset):
         fy = 256.0 / np.tan(np.deg2rad(90.0) / 2)
         K[:, 0, 0] = K[:, 0, 0] * fx
         K[:, 1, 1] = K[:, 1, 1] * fy
-
+        idx
         downsampling_ratio = self.img_res / 512
         K[:, 0, 0] = K[:, 0, 0] * downsampling_ratio
         K[:, 1, 1] = K[:, 1, 1] * downsampling_ratio

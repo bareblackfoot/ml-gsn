@@ -545,7 +545,6 @@ class SceneGenerator(nn.Module):
             xyz = xyz[:, :, :, [0, 2]]  # [B, H * W, samples_per_ray, 2]
         elif ref_latents.ndim == 5:
             B, local_z_dim, D, H, W = ref_latents.shape
-
             B, HW, samples_per_ray, _ = xyz.shape
             H = int(np.sqrt(HW))
             xyz = xyz.view(B, H, H, samples_per_ray, 3)
