@@ -14,6 +14,7 @@ from pytorch_lightning import LightningModule, Trainer
 from models.backprojection_utils import backproject
 from models.model_utils import collapse_trajectory_dim, expand_trajectory_dim, resize_trajectory
 from utils.utils import exclusive_mean
+from einops import rearrange, repeat
 
 
 class GSNVizCallback(Callback):
@@ -48,12 +49,15 @@ class GSNVizCallback(Callback):
             filename = 'real_trajectories_epoch_{:06d}.png'.format(trainer.current_epoch)
             sample_trajectories(self.viz_dir, filename, self.voxel_res, self.voxel_size, batch['Rt'].clone())
 
+            ref_rgb = rearrange(batch['ref_rgb'].clone(), 'b t c h w -> (b t) c h w')
+            ref_depth = rearrange(batch['ref_depth'].clone(), 'b t c h w -> (b t) c h w')
+
             del batch['Rt']  # remove Rt so that trajectory sampler fills it in
             for k in batch.keys():
                 batch[k] = batch[k].cuda()
             with torch.no_grad():
                 z = torch.rand(batch['K'].shape[0], pl_module.z_dim, device=batch['K'].device)
-                y_hat_rgb, y_hat_depth, Rt, K = pl_module(z, batch['ref_rgb'], batch['ref_depth'], batch)
+                y_hat_rgb, y_hat_depth, Rt, K = pl_module(z, ref_rgb, ref_depth, batch)
 
             filename = 'fake_samples_epoch_{:06d}.png'.format(trainer.current_epoch)
             sample_static(self.viz_dir, filename, collapse_trajectory_dim(y_hat_rgb), nrow=T)
