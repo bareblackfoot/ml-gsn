@@ -53,7 +53,7 @@ class GSNVizCallback(Callback):
                 batch[k] = batch[k].cuda()
             with torch.no_grad():
                 z = torch.rand(batch['K'].shape[0], pl_module.z_dim, device=batch['K'].device)
-                y_hat_rgb, y_hat_depth, Rt, K = pl_module(z, batch)
+                y_hat_rgb, y_hat_depth, Rt, K = pl_module(z, batch['ref_rgb'], batch['ref_depth'], batch)
 
             filename = 'fake_samples_epoch_{:06d}.png'.format(trainer.current_epoch)
             sample_static(self.viz_dir, filename, collapse_trajectory_dim(y_hat_rgb), nrow=T)
